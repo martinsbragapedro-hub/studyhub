@@ -112,6 +112,25 @@ app.delete('/api/exams/:id', async (req, res) => {
     }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => console.log(`Servidor rodando na porta ${PORT}`));
+const PORT = process.env.PORT || 8080;
+
+// Vamos testar a conexão com o banco ANTES de ligar o site
+pool.getConnection()
+    .then((connection) => {
+        console.log("✅ Banco de dados MySQL conectado com sucesso!");
+        connection.release(); // Libera a conexão do teste
+        
+        // Só liga o servidor se o banco estiver OK
+        app.listen(PORT, '0.0.0.0', () => {
+            console.log(`🚀 Servidor ONLINE rodando na porta ${PORT}`);
+        });
+    })
+    .catch((err) => {
+        console.error("❌ ERRO FATAL: Falha ao conectar no MySQL!");
+        console.error("Motivo do erro:", err.message);
+        process.exit(1); // Força o app a cair para o Railway nos mostrar o erro
+    });
+
+// const PORT = process.env.PORT || 3000;
+// app.listen(PORT, '0.0.0.0', () => console.log(`Servidor rodando na porta ${PORT}`));
 // app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
