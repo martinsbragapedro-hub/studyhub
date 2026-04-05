@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyHub 2.0 - Elite Learning</title>
+    
+    <!-- Biblioteca Vis.js para o Grafo de Conhecimento -->
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+
+    <style>
+        :root {
+            --bg-primary: #ffffff; --bg-secondary: #f8f9fa; --bg-card: #ffffff;
+            --text-primary: #1a1a1a; --text-secondary: #6c757d; --border: #e0e0e0;
+            --accent: #6366f1; --accent-hover: #4f46e5; --success: #10b981;
+            --warning: #f59e0b; --danger: #ef4444; --shadow: rgba(0, 0, 0, 0.1);
+        }
+        [data-theme="dark"] {
+            --bg-primary: #1a1a1a; --bg-secondary: #2d2d2d; --bg-card: #242424;
+            --text-primary: #ffffff; --text-secondary: #a0a0a0; --border: #404040;
+            --shadow: rgba(0, 0, 0, 0.3);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg-primary); color: var(--text-primary); transition: all 0.3s; line-height: 1.6; }
+
+        /* MODO RESPONSÁVEL */
+        body.is-parent .hide-on-parent { display: none !important; }
+        .parent-dashboard { display: none; background: linear-gradient(135deg, var(--warning), #d97706); color: white; padding: 15px 20px; text-align: center; }
+        body.is-parent .parent-dashboard { display: block; }
+        .student-inbox { display: none; background: rgba(99, 102, 241, 0.1); border-left: 4px solid var(--accent); padding: 15px; margin-bottom: 20px; border-radius: 8px; }
+        body.is-student .student-inbox { display: block; }
+
+        /* LOGIN */
+        .login-container { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); padding: 20px; }
+        .login-box { background: var(--bg-card); padding: 40px; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); width: 100%; max-width: 480px; }
+        .login-header { text-align: center; margin-bottom: 30px; }
+        .login-header h1 { font-size: 2.2em; margin-bottom: 8px; background: linear-gradient(135deg, #6366f1, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9em; }
+        .form-input { width: 100%; padding: 12px 16px; border: 2px solid var(--border); border-radius: 10px; font-size: 1em; background: var(--bg-secondary); color: var(--text-primary); transition: 0.3s; }
+        .form-input:focus { outline: none; border-color: var(--accent); }
+        .btn { width: 100%; padding: 14px; border: none; border-radius: 10px; font-size: 1em; font-weight: 600; cursor: pointer; transition: 0.3s; }
+        .btn-primary { background: linear-gradient(135deg, var(--accent), #8b5cf6); color: white; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4); }
+        .toggle-form { text-align: center; margin-top: 20px; color: var(--text-secondary); }
+        .toggle-form a { color: var(--accent); cursor: pointer; font-weight: 600; }
+        .alert { padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 0.9em; display: none;}
+        .alert.active { display: block; }
+        .alert-error { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid var(--danger); }
+        .alert-success { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid var(--success); }
+
+        /* APP */
+        .app-container { display: none; }
+        .app-container.active { display: block; }
+        .navbar { background: var(--bg-card); border-bottom: 1px solid var(--border); padding: 16px 0; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px var(--shadow); }
+        .navbar-content { max-width: 1400px; margin: 0 auto; padding: 0 20px; display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 1.5em; font-weight: 700; color: var(--accent); }
+        .navbar-actions { display: flex; gap: 12px; align-items: center; }
+        .theme-toggle { background: var(--bg-secondary); border: none; width: 40px; height: 40px; border-radius: 10px; cursor: pointer; font-size: 1.2em; color: var(--text-primary); }
+        .user-info { display: flex; align-items: center; gap: 12px; padding: 8px 16px; background: var(--bg-secondary); border-radius: 10px; }
+        .user-avatar { width: 32px; height: 32px; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; }
+        .btn-logout { padding: 8px 16px; background: var(--danger); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; }
+        
+        .tabs { max-width: 1400px; margin: 0 auto; padding: 20px 20px 0; display: flex; gap: 8px; border-bottom: 2px solid var(--border); overflow-x: auto; }
+        .tab { padding: 12px 24px; background: transparent; border: none; border-bottom: 3px solid transparent; cursor: pointer; font-size: 1em; font-weight: 600; color: var(--text-secondary); white-space: nowrap; }
+        .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+        .main-content { max-width: 1400px; margin: 0 auto; padding: 30px 20px; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* UI COMPONENTS */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: var(--bg-card); padding: 24px; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 2px 8px var(--shadow); transition: 0.3s; cursor: pointer; }
+        .stat-card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px var(--shadow); }
+        .stat-icon { font-size: 1.5em; margin-bottom: 8px; }
+        .stat-label { font-size: 0.85em; color: var(--text-secondary); margin-bottom: 8px; }
+        .stat-value { font-size: 1.8em; font-weight: 700; }
+        .stat-percentage { font-size: 0.85em; color: var(--text-secondary); margin-top: 4px; font-weight: bold; }
+        
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
+        .section-title { font-size: 1.5em; font-weight: 700; }
+        .btn-add { padding: 12px 24px; background: var(--accent); color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; }
+
+        .filters { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+        .filter-select { padding: 10px 16px; border: 2px solid var(--border); border-radius: 10px; background: var(--bg-card); color: var(--text-primary); cursor: pointer; }
+
+        /* TASKS */
+        .tasks-container { display: flex; flex-direction: column; gap: 12px; }
+        .task-card { background: var(--bg-card); padding: 20px; border-radius: 12px; border: 2px solid var(--border); box-shadow: 0 2px 8px var(--shadow); cursor: pointer; transition: 0.3s; }
+        .task-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px var(--shadow); }
+        .task-card.completed { border-color: var(--success); opacity: 0.8; }
+        .task-card.overdue { border-color: var(--danger); }
+        .task-card.near-deadline { border-color: var(--warning); }
+        .task-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+        .task-title { font-size: 1.1em; font-weight: 600; flex: 1; }
+        .task-priority { padding: 4px 12px; border-radius: 6px; font-size: 0.75em; font-weight: 600; text-transform: uppercase; }
+        .priority-high { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
+        .priority-medium { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
+        .priority-low { background: rgba(16, 185, 129, 0.2); color: var(--success); }
+        .task-meta { display: flex; gap: 16px; font-size: 0.9em; color: var(--text-secondary); flex-wrap: wrap; }
+        .task-status { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 0.75em; font-weight: 600; margin-top: 8px; }
+        .status-pending { background: rgba(99, 102, 241, 0.1); color: var(--accent); }
+        .status-completed { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+        .status-overdue { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
+        .spaced-badge { background: #8b5cf6; color: white; padding: 3px 8px; border-radius: 8px; font-size: 0.75em; margin-left: 10px; }
+
+        /* ABA IA & SEGUNDO CÉREBRO */
+        .ai-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+        @media(max-width: 900px) { .ai-grid { grid-template-columns: 1fr; } }
+        .graph-container { border: 2px solid var(--border); border-radius: 16px; height: 500px; background: var(--bg-secondary); overflow: hidden; }
+        .chat-container { border: 2px solid var(--border); border-radius: 16px; display: flex; flex-direction: column; height: 500px; background: var(--bg-card); }
+        .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .chat-bubble { max-width: 85%; padding: 12px 16px; border-radius: 12px; font-size: 0.95em; }
+        .chat-ai { background: rgba(99, 102, 241, 0.1); border-bottom-left-radius: 2px; align-self: flex-start; }
+        .chat-user { background: var(--accent); color: white; border-bottom-right-radius: 2px; align-self: flex-end; }
+        .chat-input { display: flex; padding: 15px; border-top: 1px solid var(--border); gap: 10px; }
+        
+        .ai-tools { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px; }
+        .ai-tool-btn { padding: 20px; text-align: center; border: 2px dashed var(--accent); border-radius: 12px; cursor: pointer; color: var(--text-primary); font-weight: 600; background: var(--bg-card); transition: 0.3s;}
+        .ai-tool-btn:hover { background: rgba(99, 102, 241, 0.05); }
+
+        /* ABA FOCO */
+        .focus-panel { background: var(--bg-card); border: 2px solid var(--border); border-radius: 20px; padding: 40px; text-align: center; }
+        .timer-display { font-size: 6rem; font-weight: bold; font-variant-numeric: tabular-nums; color: var(--accent); margin: 20px 0; }
+        .focus-controls { display: flex; justify-content: center; gap: 15px; margin-bottom: 30px; flex-wrap: wrap; }
+        .focus-select { padding: 12px; border-radius: 10px; border: 2px solid var(--border); background: var(--bg-secondary); color: var(--text-primary); font-size: 1em; }
+        
+        /* PROVA SIMULADA */
+        #examOverlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #000000; z-index: 9999; color: white; flex-direction: column; align-items: center; justify-content: center; }
+        #examOverlay.active { display: flex; }
+        .exam-timer { font-size: 8rem; color: var(--danger); font-weight: bold; margin-bottom: 30px; }
+
+        /* CALENDÁRIO */
+        .calendar-container { background: var(--bg-card); padding: 24px; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 2px 8px var(--shadow); }
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .calendar-month-year { font-size: 1.3em; font-weight: 700; }
+        .calendar-nav button { background: var(--bg-secondary); color: var(--text-primary); border: none; width: 36px; height: 36px; border-radius: 8px; cursor: pointer; font-size: 1.2em; }
+        .calendar-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 8px; text-align: center; font-weight: 600; color: var(--text-secondary); }
+        .calendar-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+        .calendar-day { aspect-ratio: 1; padding: 8px; background: var(--bg-secondary); border: 2px solid transparent; border-radius: 8px; text-align: center; cursor: pointer; position: relative; }
+        .calendar-day.today { background: var(--accent); color: white; }
+        .calendar-day.has-tasks { border-color: var(--accent); }
+        .calendar-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); display: inline-block; margin: 1px; }
+        .week-view { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; }
+        .day-column { background: var(--bg-card); padding: 16px; border-radius: 12px; border: 1px solid var(--border); }
+        .day-header { font-weight: 700; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid var(--border); }
+        .day-task-item { padding: 8px; background: var(--bg-secondary); border-radius: 6px; margin-bottom: 8px; font-size: 0.9em; cursor: pointer; }
+
+        /* MODAIS GERAIS */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); z-index: 1000; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px); }
+        .modal.active { display: flex; }
+        .modal-content { background: var(--bg-card); padding: 30px; border-radius: 16px; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-title { font-size: 1.4em; font-weight: 700; }
+        .btn-close { background: none; border: none; font-size: 1.5em; cursor: pointer; color: var(--text-secondary); }
+        .btn-group { display: flex; gap: 12px; margin-top: 20px; }
+        .btn-secondary { flex: 1; padding: 12px; border: 2px solid var(--border); border-radius: 8px; background: transparent; color: var(--text-primary); font-weight: 600; cursor: pointer; }
+        .btn-danger { flex: 1; padding: 12px; border: none; border-radius: 8px; background: var(--danger); color: white; font-weight: 600; cursor: pointer; }
+        textarea.form-input { resize: vertical; min-height: 100px; }
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
+
+        /* FLASHCARDS */
+        .flashcard { width: 100%; height: 150px; perspective: 1000px; cursor: pointer; margin-bottom: 15px; }
+        .flashcard-inner { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.6s; transform-style: preserve-3d; }
+        .flashcard.flipped .flashcard-inner { transform: rotateY(180deg); }
+        .flashcard-front, .flashcard-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; display: flex; align-items: center; justify-content: center; padding: 20px; border-radius: 12px; border: 2px solid var(--accent); background: var(--bg-card); box-shadow: 0 4px 8px var(--shadow);}
+        .flashcard-back { transform: rotateY(180deg); background: rgba(99, 102, 241, 0.1); }
+        
+        .time-breakdown { background: var(--bg-secondary); padding: 16px; border-radius: 12px; margin-top: 12px; }
+        .time-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    </style>
+</head>
+<body>
+
+    <!-- PAINEL DO RESPONSÁVEL -->
+    <div class="parent-dashboard">
+        <strong>👁️ Painel do Responsável</strong> | Monitorando: 
+        <select id="childSelector" style="padding: 5px; border-radius: 5px; margin: 0 10px; background:white; color:black;">
+            <option>Selecione um filho...</option>
+            <option value="filho1">Filho (Conta Atual)</option>
+        </select>
+        <button onclick="sendParentMessage()" style="padding: 5px 15px; border-radius: 5px; border: none; background: white; color: var(--warning); font-weight: bold; cursor: pointer;">📩 Enviar Cobrança ao Aluno</button>
+    </div>
+
+    <!-- TELA DE LOGIN E REGISTRO -->
+    <div class="login-container" id="authPage">
+        <div class="login-box">
+            <div class="login-header">
+                <h1>📚 StudyHub 2.0</h1>
+                <p id="authSubtitle">Plataforma de Alta Performance</p>
+            </div>
+
+            <div id="alertContainer" class="alert alert-error"></div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label>E-mail (Dica: digite a palavra 'pai' para testar como Responsável)</label>
+                    <input type="email" id="loginEmail" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label>Senha</label>
+                    <input type="password" id="loginPassword" class="form-input" required>
+                </div>
+                <button type="submit" class="btn btn-primary">🔐 Entrar</button>
+            </form>
+
+            <form id="registerForm" style="display: none;">
+                <div class="form-group">
+                    <label>Selecione seu perfil:</label>
+                    <select id="regRole" class="form-input" onchange="toggleRegFields()" required>
+                        <option value="student">👨‍🎓 Sou Aluno</option>
+                        <option value="parent">👨‍👩‍👧 Sou Responsável (Pai/Mãe)</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Seu Nome Completo</label><input type="text" id="registerName" class="form-input" required></div>
+                <div class="form-group"><label>Seu E-mail</label><input type="email" id="registerEmail" class="form-input" required></div>
+                
+                <div id="whatsappFields">
+                    <div class="form-group">
+                        <label style="color: var(--accent);">E-mail do Responsável (Para acompanhamento)</label>
+                        <input type="email" id="regParentEmail" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label style="color: var(--accent);">WhatsApp do Responsável (Obrigatório)</label>
+                        <input type="text" id="regParentPhone" class="form-input" placeholder="(00) 90000-0000" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Seu WhatsApp (Opcional)</label>
+                        <input type="text" id="regStudentPhone" class="form-input" placeholder="(00) 90000-0000">
+                    </div>
+                </div>
+
+                <div class="form-group"><label>Crie uma Senha</label><input type="password" id="registerPassword" class="form-input" required minlength="6"></div>
+                <button type="submit" class="btn btn-primary">✨ Criar conta</button>
+            </form>
+
+            <div class="toggle-form">
+                <span id="toggleText">Não tem uma conta?</span>
+                <a id="toggleLink">Criar conta</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- APP PRINCIPAL -->
+    <div class="app-container" id="appContainer">
+        <nav class="navbar">
+            <div class="navbar-content">
+                <div class="logo">📚 StudyHub 2.0</div>
+                <div class="navbar-actions">
+                    <button class="theme-toggle" id="themeToggle">🌙</button>
+                    <div class="user-info">
+                        <div class="user-avatar" id="userAvatar">A</div>
+                        <span id="userName">Usuário</span>
+                    </div>
+                    <button class="btn-logout" id="logoutBtn">Sair</button>
+                </div>
+            </div>
+        </nav>
+
+        <div class="tabs">
+            <button class="tab active" data-tab="tasks">📋 Tarefas</button>
+            <button class="tab" data-tab="ai">🧠 Inteligência (IA)</button>
+            <button class="tab" data-tab="focus">⏱️ Foco & Prova</button>
+            <button class="tab" data-tab="exams">📝 Provas</button>
+            <button class="tab" data-tab="planning">📅 Planejamento</button>
+        </div>
+
+        <main class="main-content">
+            
+            <!-- TAREFAS -->
+            <div class="tab-content active" id="tasks-tab">
+                <div class="student-inbox" id="studentInbox">
+                    <strong>🔔 Alerta do Responsável:</strong>
+                    <span id="inboxMessage" style="margin-left: 10px;">Nenhuma mensagem nova.</span>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">📋</div><div class="stat-label">Total de Tarefas</div><div class="stat-value" id="statTotal">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">⏳</div><div class="stat-label">Pendentes</div><div class="stat-value" id="statPending">0</div><div class="stat-percentage" id="statPendingPercent">0%</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">⚠️</div><div class="stat-label">Atrasadas</div><div class="stat-value" id="statOverdue">0</div><div class="stat-percentage" id="statOverduePercent">0%</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">✅</div><div class="stat-label">Concluídas</div><div class="stat-value" id="statCompleted">0</div><div class="stat-percentage" id="statCompletedPercent">0%</div>
+                    </div>
+                    <div class="stat-card" id="timeCard" style="cursor: pointer;" onclick="showTimeBreakdown()">
+                        <div class="stat-icon">⏱️</div><div class="stat-label">Tempo Estimado Total</div><div class="stat-value" id="statTime">0h 0m</div><div class="stat-percentage">Clique para ver por matéria</div>
+                    </div>
+                </div>
+
+                <div class="section-header">
+                    <h2 class="section-title">Minhas Tarefas</h2>
+                    <button class="btn-add hide-on-parent" onclick="openTaskModal()">➕ Nova Tarefa</button>
+                </div>
+
+                <div class="filters">
+                    <select class="filter-select" id="filterSubject"><option value="">Todas as matérias</option></select>
+                    <select class="filter-select" id="filterPriority"><option value="">Prioridades</option><option value="high">Alta</option><option value="medium">Média</option><option value="low">Baixa</option></select>
+                    <select class="filter-select" id="filterStatus"><option value="">Status</option><option value="pending">Pendente</option><option value="completed">Concluída</option><option value="overdue">Atrasada</option></select>
+                    <select class="filter-select" id="sortBy"><option value="deadline">Data de entrega</option><option value="priority">Prioridade</option><option value="subject">Matéria</option></select>
+                </div>
+
+                <div class="tasks-container" id="tasksContainer"></div>
+            </div>
+
+            <!-- IA -->
+            <div class="tab-content" id="ai-tab">
+                <div class="section-header"><h2 class="section-title">Segundo Cérebro & IA</h2></div>
+                <div class="ai-grid">
+                    <div>
+                        <h3 style="margin-bottom: 15px;">🌐 Seu Grafo de Conhecimento (Real)</h3>
+                        <div id="knowledgeGraph" class="graph-container"></div>
+                        <small style="color: var(--text-secondary); display: block; margin-top: 10px;">Mapeando suas tarefas cadastradas automaticamente.</small>
+                    </div>
+                    <div class="chat-container">
+                        <div style="padding: 15px; border-bottom: 1px solid var(--border); font-weight: bold;">🤺 Inquisidor Socrático (Técnica Feynman)</div>
+                        <div class="chat-messages" id="chatBox">
+                            <div class="chat-bubble chat-ai">Sou seu avaliador implacável. Me explique um conceito que você estudou hoje (Mínimo de 20 letras).</div>
+                        </div>
+                        <div class="chat-input">
+                            <input type="text" id="chatInput" class="form-input" placeholder="Escreva a sua explicação...">
+                            <button class="btn btn-primary" style="width: auto;" onclick="sendChatMessage()">Enviar</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="ai-tools">
+                    <button class="ai-tool-btn" onclick="openModal('ocrModal')">📸 Scanner OCR</button>
+                    <button class="ai-tool-btn" onclick="openModal('essayModal')">✍️ Corretor de Redação</button>
+                    <button class="ai-tool-btn" onclick="openModal('flashcardModal')">🃏 Gerar Flashcards</button>
+                </div>
+            </div>
+
+            <!-- FOCO -->
+            <div class="tab-content" id="focus-tab">
+                <div class="focus-panel">
+                    <h2 style="font-size: 2em; margin-bottom: 10px;">Modo Foco Personalizado</h2>
+                    <div class="focus-controls">
+                        <select id="focusMode" class="focus-select" onchange="changeTimerMode()">
+                            <option value="stopwatch">⏱️ Estudo Direto (Cronômetro Lívre)</option>
+                            <option value="pomodoro">🍅 Pomodoro (Contagem 25min)</option>
+                        </select>
+                        <select id="focusSound" class="focus-select" onchange="changeAudio()">
+                            <option value="none">🔇 Sem Som</option>
+                            <option value="rain">🌧️ Som de Chuva</option>
+                            <option value="lofi">🎧 Música Lo-Fi</option>
+                            <option value="jazz">🎷 Jazz Suave</option>
+                        </select>
+                    </div>
+                    <div class="timer-display" id="timerDisplay">00:00</div>
+                    <div style="display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;">
+                        <button class="btn btn-primary" id="btnStartTimer" style="width: 150px;">▶️ Começar</button>
+                        <button class="btn" id="btnStopTimer" style="width: 150px; background: var(--bg-secondary); color: var(--text-primary);">⏸️ Pausar</button>
+                        <button class="btn" id="btnResetTimer" style="width: 150px; background: var(--danger); color: white;">🔄 Zerar</button>
+                    </div>
+                    <hr style="border: none; border-top: 1px solid var(--border); margin: 40px 0;">
+                    <h3 style="color: var(--danger); margin-bottom: 15px;">⚠️ Treinamento de Alta Pressão</h3>
+                    <button class="btn btn-exam" onclick="startExamMode()">🔒 Iniciar Prova Simulada (Tela Travada)</button>
+                </div>
+            </div>
+
+            <!-- PROVAS -->
+            <div class="tab-content" id="exams-tab">
+                <div class="section-header">
+                    <h2 class="section-title">Minhas Provas</h2>
+                    <button class="btn-add hide-on-parent" onclick="openExamModal()">➕ Nova Prova</button>
+                </div>
+                <div class="tasks-container" id="examsContainer"></div>
+            </div>
+
+            <!-- PLANEJAMENTO -->
+            <div class="tab-content" id="planning-tab">
+                <div class="section-header">
+                    <h2 class="section-title">Planejamento</h2>
+                    <select class="filter-select" id="planningView" onchange="renderPlanning()">
+                        <option value="weekly">Semanal</option><option value="monthly">Mensal</option>
+                    </select>
+                </div>
+                <div class="planning-quick-add hide-on-parent">
+                    <h3 style="margin-bottom: 12px;">➕ Tarefa Rápida</h3>
+                    <form class="planning-quick-form" id="quickAddForm">
+                        <input type="text" id="quickSubject" placeholder="Matéria" required>
+                        <input type="text" id="quickDescription" placeholder="Tarefa" required>
+                        <input type="date" id="quickDate" required>
+                        <input type="number" id="quickDuration" placeholder="Minutos" min="1">
+                        <button type="submit" class="btn btn-primary" style="width: auto;">Adicionar</button>
+                    </form>
+                </div>
+                <div id="planningContainer"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- OVERLAY PROVA -->
+    <div id="examOverlay">
+        <h2>Modo Prova Simulada Ativo</h2>
+        <p>A tela está travada. Foco total!</p>
+        <div class="exam-timer" id="examOverlayTimer">45:00</div>
+        <button class="btn" style="background: white; color: black; width: 200px;" onclick="stopExamMode()">Finalizar Prova</button>
+    </div>
+
+    <!-- MODAIS DE TAREFAS/PROVAS -->
+    <div class="modal" id="taskModal">
+        <div class="modal-content">
+            <div class="modal-header"><h2 class="modal-title" id="taskModalTitle">Nova Tarefa</h2><button class="btn-close" onclick="closeModal('taskModal')">×</button></div>
+            <form id="taskForm">
+                <div class="form-group"><label>Matéria *</label><input type="text" id="taskSubject" class="form-input" required></div>
+                <div class="form-group"><label>Tarefa *</label><textarea id="taskDescription" class="form-input" required></textarea></div>
+                <div class="form-group"><label>Data de entrega *</label><input type="date" id="taskDeadline" class="form-input" required></div>
+                <div class="form-group"><label>Data para começar</label><input type="date" id="taskStart" class="form-input"></div>
+                <div class="form-group"><label>Duração (minutos)</label><input type="number" id="taskDuration" class="form-input" min="1"></div>
+                <div class="form-group">
+                    <label>Prioridade *</label>
+                    <select id="taskPriority" class="form-input" required><option value="low">Baixa</option><option value="medium">Média</option><option value="high">Alta</option></select>
+                </div>
+                <div class="form-group" style="display: flex; gap: 10px; align-items: center; background: rgba(139, 92, 246, 0.1); padding: 15px; border-radius: 8px;">
+                    <input type="checkbox" id="taskSpaced" style="width: 18px; height: 18px;">
+                    <label style="margin: 0;">Ativar Revisão Espaçada (1, 3 e 7 dias)</label>
+                </div>
+                <button type="submit" class="btn btn-primary" style="margin-top: 15px;">💾 Salvar Tarefa</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="examModal">
+        <div class="modal-content">
+            <div class="modal-header"><h2 class="modal-title" id="examModalTitle">Nova Prova</h2><button class="btn-close" onclick="closeModal('examModal')">×</button></div>
+            <form id="examForm">
+                <div class="form-group"><label>Matéria *</label><input type="text" id="examSubject" class="form-input" required></div>
+                <div class="form-group"><label>Data da prova *</label><input type="date" id="examDate" class="form-input" required></div>
+                <div class="form-group"><label>Materiais de Estudo</label><textarea id="examMaterials" class="form-input"></textarea></div>
+                <div class="form-group"><label>Conteúdos da Prova *</label><textarea id="examContent" class="form-input" required></textarea></div>
+                <button type="submit" class="btn btn-primary">💾 Salvar Prova</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAIS INFORMATIVOS -->
+    <div class="modal" id="detailModal">
+        <div class="modal-content">
+            <div class="modal-header"><h2 class="modal-title" id="detailTitle">Detalhes</h2><button class="btn-close" onclick="closeModal('detailModal')">×</button></div>
+            <div id="detailContent"></div>
+        </div>
+    </div>
+
+    <div class="modal" id="timeModal">
+        <div class="modal-content">
+            <div class="modal-header"><h2 class="modal-title">Tempo por Matéria</h2><button class="btn-close" onclick="closeModal('timeModal')">×</button></div>
+            <div id="timeBreakdown"></div>
+        </div>
+    </div>
+
+    <div class="modal" id="dayTasksModal">
+        <div class="modal-content">
+            <div class="modal-header"><h2 class="modal-title" id="dayTasksTitle">Tarefas do Dia</h2><button class="btn-close" onclick="closeModal('dayTasksModal')">×</button></div>
+            <div id="dayTasksContent"></div>
+        </div>
+    </div>
+
+    <!-- MODAIS IA -->
+    <div class="modal" id="ocrModal">
+        <div class="modal-content">
+            <div class="modal-header"><h2 class="modal-title">📸 Scanner OCR</h2><button class="btn-close" onclick="closeModal('ocrModal')">×</button></div>
+            <input type="file" id="ocrFile" accept="image/*" class="form-input" style="margin-bottom: 15px;">
+            <button class="btn btn-primary" onclick="simulateOCR()">Escanear Imagem</button>
+            <div id="ocrResult" style="margin-top: 15px; padding: 15px; background: var(--bg-secondary); border-radius: 8px; display: none;"></div>
+        </div>
+    </div>
+
+    <div class="modal" id="essayModal">
+        <div class="modal-content">
+            <div class="modal-header"><h2 class="modal-title">✍️ Corretor de Redação</h2><button class="btn-close" onclick="closeModal('essayModal')">×</button></div>
+            <textarea id="essayInput" class="form-input" rows="6" placeholder="Cole sua redação aqui..." style="margin-bottom: 15px;"></textarea>
+            <button class="btn btn-primary" onclick="simulateEssay()">Corrigir Texto</button>
+            <div id="essayResult" style="margin-top: 15px; padding: 15px; background: rgba(16, 185, 129, 0.1); border-left: 4px solid var(--success); display: none;"></div>
+        </div>
+    </div>
+
+    <div class="modal" id="flashcardModal">
+        <div class="modal-content">
+            <div class="modal-header"><h2 class="modal-title">🃏 Flashcards Mágicos</h2><button class="btn-close" onclick="closeModal('flashcardModal')">×</button></div>
+            <textarea id="flashcardInput" class="form-input" rows="4" placeholder="Cole a matéria (ex: O Iluminismo) para gerar cartões..." style="margin-bottom: 15px;"></textarea>
+            <button class="btn btn-primary" onclick="simulateFlashcards()">✨ Gerar Cartões Mágicos</button>
+            <div id="flashcardResult" style="margin-top: 20px; display: none;"></div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT PRINCIPAL BLINDADO -->
+    <script>
+        // Declaramos variáveis de estado global
+        let currentUser = null;
+        let tasks = [];
+        let exams = [];
+        let editingTaskId = null;
+        let editingExamId = null;
+        let currentMonth = new Date().getMonth();
+        let currentYear = new Date().getFullYear();
+
+        // Utilitários Globais
+        window.openModal = function(id) { document.getElementById(id).classList.add('active'); };
+        window.closeModal = function(id) { document.getElementById(id).classList.remove('active'); };
+        window.formatDate = function(dateStr) { return new Date(dateStr + 'T12:00:00').toLocaleDateString('pt-BR'); };
+        window.getDaysDiff = function(dateStr) {
+            const today = new Date(); today.setHours(0,0,0,0);
+            const d = new Date(dateStr + 'T12:00:00'); d.setHours(0,0,0,0);
+            return Math.ceil((d - today) / (1000*60*60*24));
+        };
+        window.getTaskStatus = function(t) {
+            if(t.completed) return 'completed';
+            const d = window.getDaysDiff(t.deadline);
+            if(d < 0) return 'overdue';
+            if(d <= 3) return 'near-deadline';
+            return 'pending';
+        };
+
+        // Funções Chamadas Diretamente pelo HTML OnClick
+        window.toggleRegFields = function() {
+            const isStudent = document.getElementById('regRole').value === 'student';
+            document.getElementById('studentExtraFields') ? document.getElementById('studentExtraFields').style.display = isStudent ? 'block' : 'none' : null;
+            document.getElementById('whatsappFields').style.display = isStudent ? 'block' : 'none';
+            if(isStudent) {
+                document.getElementById('regParentEmail').setAttribute('required', 'true');
+                document.getElementById('regParentPhone').setAttribute('required', 'true');
+            } else {
+                document.getElementById('regParentEmail').removeAttribute('required');
+                document.getElementById('regParentPhone').removeAttribute('required');
+            }
+        };
+
+        window.sendParentMessage = function() {
+            const msg = prompt("Mandar aviso para o aluno (WhatsApp Simulado):");
+            if(msg) { localStorage.setItem('studyhub_parentMsg', msg); alert("Mensagem salva e notificação enviada!"); }
+        };
+
+        window.openTaskModal = function() { editingTaskId = null; document.getElementById('taskForm').reset(); openModal('taskModal'); };
+        window.openExamModal = function() { editingExamId = null; document.getElementById('examForm').reset(); openModal('examModal'); };
+
+        window.showTaskDetail = function(id) {
+            const t = tasks.find(x => x.id === id);
+            document.getElementById('detailTitle').textContent = t.subject;
+            document.getElementById('detailContent').innerHTML = `
+                <div class="detail-section"><div class="detail-label">Tarefa</div><div class="detail-value">${t.description}</div></div>
+                <div class="detail-section"><div class="detail-label">Entrega</div><div class="detail-value">${formatDate(t.deadline)}</div></div>
+                <div class="btn-group hide-on-parent">
+                    <button class="btn-secondary" onclick="editTask('${t.id}')">✏️ Editar</button>
+                    <button class="btn-secondary" onclick="toggleTask('${t.id}')">${t.completed ? 'Reabrir' : '✅ Concluir'}</button>
+                    <button class="btn-danger" onclick="deleteTask('${t.id}')">🗑️ Excluir</button>
+                </div>`;
+            openModal('detailModal');
+        };
+
+        window.editTask = function(id) {
+            const t = tasks.find(x => x.id === id); editingTaskId = id;
+            document.getElementById('taskSubject').value = t.subject;
+            document.getElementById('taskDescription').value = t.description;
+            document.getElementById('taskDeadline').value = t.deadline;
+            document.getElementById('taskStart').value = t.start || '';
+            document.getElementById('taskDuration').value = t.duration || '';
+            document.getElementById('taskPriority').value = t.priority;
+            document.getElementById('taskSpaced').checked = t.spaced || false;
+            closeModal('detailModal'); openModal('taskModal');
+        };
+
+        window.toggleTask = function(id) { const t = tasks.find(x => x.id === id); t.completed = !t.completed; saveTasks(); closeModal('detailModal'); renderAll(); };
+        window.deleteTask = function(id) { tasks = tasks.filter(x => x.id !== id); saveTasks(); closeModal('detailModal'); renderAll(); };
+
+        window.showExamDetail = function(id) {
+            const ex = exams.find(x => x.id === id);
+            document.getElementById('detailTitle').textContent = `Prova de ${ex.subject}`;
+            document.getElementById('detailContent').innerHTML = `
+                <div class="detail-section"><div class="detail-label">Data</div><div class="detail-value">${formatDate(ex.date)}</div></div>
+                <div class="detail-section"><div class="detail-label">Conteúdo</div><div class="detail-value">${ex.content}</div></div>
+                <div class="btn-group hide-on-parent">
+                    <button class="btn-secondary" onclick="editExam('${ex.id}')">✏️ Editar</button>
+                    <button class="btn-danger" onclick="deleteExam('${ex.id}')">🗑️ Excluir</button>
+                </div>`;
+            openModal('detailModal');
+        };
+        window.editExam = function(id) {
+            const ex = exams.find(x => x.id === id); editingExamId = id;
+            document.getElementById('examSubject').value = ex.subject;
+            document.getElementById('examDate').value = ex.date;
+            document.getElementById('examMaterials').value = ex.materials;
+            document.getElementById('examContent').value = ex.content;
+            closeModal('detailModal'); openModal('examModal');
+        };
+        window.deleteExam = function(id) { exams = exams.filter(x => x.id !== id); saveExams(); closeModal('detailModal'); renderAll(); };
+
+        window.showTimeBreakdown = function() {
+            const bySub = {};
+            tasks.filter(t => !t.completed).forEach(t => {
+                if (!bySub[t.subject]) bySub[t.subject] = 0;
+                bySub[t.subject] += parseInt(t.duration) || 0;
+            });
+            const sorted = Object.entries(bySub).sort((a, b) => b[1] - a[1]);
+            document.getElementById('timeBreakdown').innerHTML = `<div class="time-breakdown">${sorted.map(([sub, mins]) => `<div class="time-item"><strong>${sub}</strong><span>${Math.floor(mins / 60)}h ${mins % 60}m</span></div>`).join('')}</div>`;
+            openModal('timeModal');
+        };
+
+        window.showDayTasks = function(dateStr) {
+            const dTasks = tasks.filter(t => t.start === dateStr || t.deadline === dateStr);
+            const dExams = exams.filter(e => e.date === dateStr);
+            const dateObj = new Date(dateStr + 'T12:00:00');
+            document.getElementById('dayTasksTitle').textContent = dateObj.toLocaleDateString('pt-BR', {weekday: 'long', day: '2-digit', month: 'long'});
+            let content = '';
+            if (dTasks.length > 0) {
+                content += '<div class="detail-section"><div class="detail-label">📚 Tarefas</div>';
+                dTasks.forEach(t => {
+                    content += `<div class="task-card" onclick="closeModal('dayTasksModal'); showTaskDetail('${t.id}')" style="margin-bottom:12px; cursor:pointer;">
+                        <strong>${t.subject}</strong><br><small>${t.description}</small></div>`;
+                });
+                content += '</div>';
+            }
+            if (dExams.length > 0) {
+                content += '<div class="detail-section"><div class="detail-label">📝 Provas</div>';
+                dExams.forEach(ex => {
+                    content += `<div class="task-card" onclick="closeModal('dayTasksModal'); showExamDetail('${ex.id}')" style="margin-bottom:12px; border-color:var(--warning); cursor:pointer;">
+                        <strong>${ex.subject}</strong></div>`;
+                });
+                content += '</div>';
+            }
+            if (!content) content = '<div class="empty-state">Nenhuma tarefa neste dia</div>';
+            document.getElementById('dayTasksContent').innerHTML = content;
+            openModal('dayTasksModal');
+        };
+
+        // Inquisidor Socrático
+        window.sendChatMessage = function() {
+            const input = document.getElementById('chatInput');
+            const box = document.getElementById('chatBox');
+            if(!input.value) return;
+            const text = input.value; input.value = '';
+            box.innerHTML += `<div class="chat-bubble chat-user">${text}</div>`; box.scrollTop = box.scrollHeight;
+            
+            setTimeout(() => {
+                let reply = "";
+                if(text.length < 20) { reply = `Você disse "${text}". Isso é muito raso. Eu exijo profundidade. Elabore melhor a sua resposta.`; } 
+                else {
+                    const prompts = [
+                        `Interessante sua visão sobre isso. Mas se assumirmos que isso é verdade, como você explicaria a falha nessa teoria usando palavras que uma criança de 10 anos entenderia?`,
+                        `Você explicou bem, mas usou muitos termos técnicos. Tente me explicar a mesma coisa sem usar jargões da matéria.`,
+                        `Qual é o principal argumento CONTRA essa ideia? Se você tivesse que defender o lado oposto na prova, o que diria?`
+                    ];
+                    reply = prompts[Math.floor(Math.random() * prompts.length)];
+                }
+                box.innerHTML += `<div class="chat-bubble chat-ai">${reply}</div>`; box.scrollTop = box.scrollHeight;
+            }, 1000);
+        };
+
+        // IA Simulações
+        window.simulateOCR = function() {
+            const files = document.getElementById('ocrFile').files;
+            if(files.length === 0) { alert("Escolha uma imagem primeiro!"); return; }
+            const div = document.getElementById('ocrResult'); div.style.display = 'block'; div.innerHTML = `⏳ <i>Extraindo texto da imagem...</i>`;
+            setTimeout(() => { div.innerHTML = `<strong>Texto Extraído:</strong><br><br>As mitocôndrias são organelas celulares importantes responsáveis pela respiração celular e produção de energia (ATP)...`; }, 1500);
+        };
+        window.simulateEssay = function() {
+            const val = document.getElementById('essayInput').value;
+            if(!val) { alert("Cole sua redação primeiro!"); return; }
+            const div = document.getElementById('essayResult'); div.style.display = 'block'; div.innerHTML = `⏳ <i>Avaliando competências do ENEM...</i>`;
+            setTimeout(() => { div.innerHTML = `<strong>Nota Estimada: 840/1000</strong><br><br><b>Competência 1 (Gramática):</b> Muito bom, mas revise o uso de crases.<br><b>Competência 3 (Argumentação):</b> Faltou um repertório sociocultural mais forte no 2º parágrafo. Cite um filósofo ou dado histórico.`; }, 1500);
+        };
+        window.simulateFlashcards = function() {
+            const val = document.getElementById('flashcardInput').value;
+            if(!val) { alert("Cole suas anotações primeiro!"); return; }
+            const div = document.getElementById('flashcardResult'); div.style.display = 'block'; div.innerHTML = `⏳ <i>Criando Cartões Mágicos...</i>`;
+            setTimeout(() => {
+                div.innerHTML = `
+                <div class="flashcard" onclick="this.classList.toggle('flipped')"><div class="flashcard-inner"><div class="flashcard-front"><b>Conceito Principal Extraído</b><br><br>(Clique para virar)</div><div class="flashcard-back"><b>A Resposta Resumida pela IA</b></div></div></div>
+                <div class="flashcard" onclick="this.classList.toggle('flipped')"><div class="flashcard-inner"><div class="flashcard-front"><b>Dica Importante</b><br><br>(Clique para virar)</div><div class="flashcard-back"><b>Lembre-se sempre de aplicar a fórmula base!</b></div></div></div>
+                `;
+            }, 1500);
+        };
+
+        // ========== DOM CONTENT LOADED (O CÓDIGO BLINDADO) ==========
+        document.addEventListener("DOMContentLoaded", () => {
+            
+            function saveTasks() { localStorage.setItem('studyhub_tasks', JSON.stringify(tasks)); }
+            function saveExams() { localStorage.setItem('studyhub_exams', JSON.stringify(exams)); }
+
+            function showApp() {
+                document.getElementById('authPage').style.display = 'none';
+                document.getElementById('appContainer').classList.add('active');
+                document.getElementById('userName').textContent = currentUser.name;
+                
+                document.body.className = ''; 
+                if(currentUser.role === 'parent') {
+                    document.body.classList.add('is-parent');
+                    alert("Painel Responsável Ativo. Apenas visualização.");
+                } else {
+                    document.body.classList.add('is-student');
+                    const msg = localStorage.getItem('studyhub_parentMsg');
+                    if(msg) document.getElementById('inboxMessage').innerHTML = `<strong>${msg}</strong>`;
+                }
+                tasks = JSON.parse(localStorage.getItem('studyhub_tasks')) || [];
+                exams = JSON.parse(localStorage.getItem('studyhub_exams')) || [];
+                window.renderAll();
+            }
+
+            if(localStorage.getItem('studyhub_user')) { currentUser = JSON.parse(localStorage.getItem('studyhub_user')); showApp(); }
+
+            // AUTH EVENTS
+            document.getElementById('toggleLink').addEventListener('click', () => {
+                const login = document.getElementById('loginForm');
+                const reg = document.getElementById('registerForm');
+                if(login.style.display === 'none') { login.style.display = 'block'; reg.style.display = 'none'; document.getElementById('toggleLink').textContent = 'Criar conta'; } 
+                else { login.style.display = 'none'; reg.style.display = 'block'; document.getElementById('toggleLink').textContent = 'Fazer login'; }
+            });
+
+            document.getElementById('loginForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const email = document.getElementById('loginEmail').value;
+                const role = email.includes('pai') ? 'parent' : 'student';
+                currentUser = { id: '1', role: role, name: role === 'parent' ? 'Pai/Mãe Responsável' : 'Aluno VIP' };
+                localStorage.setItem('studyhub_user', JSON.stringify(currentUser));
+                showApp();
+            });
+
+            document.getElementById('registerForm').addEventListener('submit', (e) => {
+                e.preventDefault(); alert("Conta criada e salva localmente! Volte ao Login.");
+            });
+
+            document.getElementById('logoutBtn').addEventListener('click', () => { localStorage.removeItem('studyhub_user'); location.reload(); });
+
+            // TABS
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.getElementById(`${tab.dataset.tab}-tab`).classList.add('active');
+                    if (tab.dataset.tab === 'planning') window.renderPlanning();
+                    if (tab.dataset.tab === 'ai') window.updateKnowledgeGraph();
+                });
+            });
+
+            // THEME
+            const themeToggle = document.getElementById('themeToggle');
+            const savedTheme = localStorage.getItem('studyhub_theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            themeToggle.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+            themeToggle.addEventListener('click', () => {
+                const newTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('studyhub_theme', newTheme);
+                themeToggle.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+            });
+
+            // RENDERING
+            window.renderAll = function() {
+                window.renderStats(); window.renderTasks(); window.renderExams(); window.renderPlanning(); window.updateFilters(); window.updateKnowledgeGraph();
+            };
+
+            window.renderStats = function() {
+                const tot = tasks.length;
+                const pend = tasks.filter(t => !t.completed && window.getTaskStatus(t) !== 'overdue').length;
+                const over = tasks.filter(t => !t.completed && window.getTaskStatus(t) === 'overdue').length;
+                const comp = tasks.filter(t => t.completed).length;
+                const time = tasks.filter(t => !t.completed).reduce((s, t) => s + (parseInt(t.duration) || 0), 0);
+                document.getElementById('statTotal').textContent = tot;
+                document.getElementById('statPending').textContent = pend;
+                document.getElementById('statOverdue').textContent = over;
+                document.getElementById('statCompleted').textContent = comp;
+                document.getElementById('statTime').textContent = `${Math.floor(time/60)}h ${time%60}m`;
+                if(tot > 0) {
+                    document.getElementById('statPendingPercent').textContent = `${Math.round(pend/tot*100)}%`;
+                    document.getElementById('statOverduePercent').textContent = `${Math.round(over/tot*100)}%`;
+                    document.getElementById('statCompletedPercent').textContent = `${Math.round(comp/tot*100)}%`;
+                }
+            };
+
+            window.updateFilters = function() {
+                const subjects = [...new Set(tasks.map(t => t.subject))].sort();
+                const select = document.getElementById('filterSubject');
+                const currentValue = select.value;
+                select.innerHTML = '<option value="">Todas as matérias</option>' + subjects.map(s => `<option value="${s}">${s}</option>`).join('');
+                if (subjects.includes(currentValue)) select.value = currentValue;
+            };
+
+            ['filterSubject', 'filterPriority', 'filterStatus', 'sortBy'].forEach(id => {
+                document.getElementById(id).addEventListener('change', () => window.renderTasks());
+            });
+
+            window.renderTasks = function() {
+                const container = document.getElementById('tasksContainer');
+                let arr = [...tasks];
+                const sub = document.getElementById('filterSubject').value;
+                const pri = document.getElementById('filterPriority').value;
+                const stat = document.getElementById('filterStatus').value;
+                const sort = document.getElementById('sortBy').value;
+                
+                if(sub) arr = arr.filter(t => t.subject === sub);
+                if(pri) arr = arr.filter(t => t.priority === pri);
+                if(stat === 'completed') arr = arr.filter(t => t.completed);
+                if(stat === 'pending') arr = arr.filter(t => !t.completed && window.getTaskStatus(t) !== 'overdue');
+                if(stat === 'overdue') arr = arr.filter(t => !t.completed && window.getTaskStatus(t) === 'overdue');
+
+                arr.sort((a, b) => {
+                    if(sort === 'deadline') return new Date(a.deadline) - new Date(b.deadline);
+                    if(sort === 'priority') { const p = {high:0,medium:1,low:2}; return p[a.priority] - p[b.priority]; }
+                    return a.subject.localeCompare(b.subject);
+                });
+
+                if(arr.length === 0) { container.innerHTML = '<div class="empty-state">Nenhuma tarefa encontrada!</div>'; return; }
+
+                container.innerHTML = arr.map(t => {
+                    const s = window.getTaskStatus(t);
+                    const labels = { completed: 'Concluída', overdue: 'Atrasada', 'near-deadline': 'Próxima', pending: 'Pendente' };
+                    const c = { completed: 'status-completed', overdue: 'status-overdue', 'near-deadline': 'status-pending', pending: 'status-pending' };
+                    const pr = {high:'Alta',medium:'Média',low:'Baixa'};
+                    return `
+                        <div class="task-card ${s}" onclick="showTaskDetail('${t.id}')">
+                            <div class="task-header">
+                                <div class="task-title">📚 ${t.subject} ${t.spaced ? '<span class="spaced-badge">🔄 Revisão Espaçada</span>' : ''}</div>
+                                <div class="task-priority priority-${t.priority}">${pr[t.priority]}</div>
+                            </div>
+                            <div class="task-meta"><span>📅 ${window.formatDate(t.deadline)}</span>${t.duration ? `<span>⏱️ ${t.duration}m</span>` : ''}</div>
+                            <div class="task-status ${c[s]}">${labels[s]}</div>
+                        </div>`;
+                }).join('');
+            };
+
+            window.renderExams = function() {
+                const container = document.getElementById('examsContainer');
+                if(exams.length === 0) { container.innerHTML = '<div class="empty-state">Nenhuma prova cadastrada!</div>'; return; }
+                container.innerHTML = [...exams].sort((a,b)=>new Date(a.date)-new Date(b.date)).map(ex => `
+                    <div class="task-card" onclick="showExamDetail('${ex.id}')">
+                        <div class="task-header"><div class="task-title">📝 ${ex.subject}</div></div>
+                        <div class="task-meta">📅 ${window.formatDate(ex.date)}</div>
+                    </div>`).join('');
+            };
+
+            window.renderPlanning = function() {
+                const view = document.getElementById('planningView').value;
+                const container = document.getElementById('planningContainer');
+                if (view === 'weekly') {
+                    const weekDays = Array.from({length:7}, (_, i) => { const d = new Date(); d.setDate(d.getDate()+i); return d; });
+                    container.innerHTML = `<div class="week-view">${weekDays.map(date => {
+                        const dStr = date.toISOString().split('T')[0];
+                        const tks = tasks.filter(t => !t.completed && (t.start === dStr || t.deadline === dStr));
+                        return `<div class="day-column">
+                            <div class="day-header">${date.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'})}</div>
+                            ${tks.map(t => `<div class="day-task-item" onclick="showTaskDetail('${t.id}')"><strong>${t.subject}</strong><br><small>${t.duration||0}m</small></div>`).join('')}
+                        </div>`;
+                    }).join('')}</div>`;
+                } else {
+                    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+                    let html = `<div class="calendar-container"><div class="calendar-header">
+                        <div class="calendar-month-year">${currentMonth+1}/${currentYear}</div>
+                        <div class="calendar-nav"><button onclick="currentMonth--;renderPlanning();">←</button><button onclick="currentMonth++;renderPlanning();">→</button></div>
+                        </div><div class="calendar-days">`;
+                    for(let i=1; i<=daysInMonth; i++) {
+                        const dStr = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+                        const hasT = tasks.some(t => !t.completed && t.deadline === dStr);
+                        html += `<div class="calendar-day ${hasT?'has-tasks':''}" onclick="showDayTasks('${dStr}')">${i} ${hasT?'<div class="calendar-dot"></div>':''}</div>`;
+                    }
+                    container.innerHTML = html + `</div></div>`;
+                }
+            };
+
+            let network;
+            window.updateKnowledgeGraph = function() {
+                const container = document.getElementById('knowledgeGraph');
+                if(!container) return;
+                let nodes = [{ id: 'MEU_CEREBRO', label: 'Meu Cérebro', color: '#ef4444', font: {size: 20} }];
+                let edges = [];
+                let subjects = [...new Set(tasks.map(t => t.subject).concat(exams.map(e => e.subject)))];
+                
+                if(subjects.length === 0) {
+                    nodes.push({ id: 'EMPTY', label: 'Adicione Tarefas e Matérias!', color: '#6c757d' });
+                    edges.push({ from: 'MEU_CEREBRO', to: 'EMPTY' });
+                } else {
+                    subjects.forEach((sub, i) => {
+                        const subId = 'SUB_' + i;
+                        nodes.push({ id: subId, label: sub, color: '#6366f1' });
+                        edges.push({ from: 'MEU_CEREBRO', to: subId });
+                        let subTasks = tasks.filter(t => t.subject === sub && t.completed);
+                        subTasks.forEach(t => {
+                            nodes.push({ id: t.id, label: t.description.substring(0,15)+'...', shape: 'box', color: '#10b981' });
+                            edges.push({ from: subId, to: t.id });
+                        });
+                    });
+                }
+                const data = { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) };
+                const options = { physics: { stabilization: false } };
+                if(network) { network.destroy(); }
+                if(window.vis) network = new vis.Network(container, data, options);
+            };
+
+            // FORMS SUBMITS
+            document.getElementById('taskForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const t = {
+                    id: editingTaskId || Date.now().toString(),
+                    subject: document.getElementById('taskSubject').value,
+                    description: document.getElementById('taskDescription').value,
+                    deadline: document.getElementById('taskDeadline').value,
+                    start: document.getElementById('taskStart').value,
+                    duration: document.getElementById('taskDuration').value,
+                    priority: document.getElementById('taskPriority').value,
+                    spaced: document.getElementById('taskSpaced').checked,
+                    completed: editingTaskId ? tasks.find(x => x.id === editingTaskId).completed : false
+                };
+                if(editingTaskId) { const i = tasks.findIndex(x => x.id === editingTaskId); tasks[i] = t; } else tasks.push(t);
+                saveTasks(); closeModal('taskModal'); window.renderAll();
+                if(t.spaced && !editingTaskId) alert("Revisões de 1, 3 e 7 dias ativadas para " + t.subject);
+            });
+
+            document.getElementById('examForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const ex = {
+                    id: editingExamId || Date.now().toString(),
+                    subject: document.getElementById('examSubject').value,
+                    date: document.getElementById('examDate').value,
+                    materials: document.getElementById('examMaterials').value,
+                    content: document.getElementById('examContent').value
+                };
+                if(editingExamId) { const i = exams.findIndex(x => x.id === editingExamId); exams[i] = ex; } else exams.push(ex);
+                saveExams(); closeModal('examModal'); window.renderAll();
+            });
+
+            document.getElementById('quickAddForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                tasks.push({
+                    id: Date.now().toString(), subject: document.getElementById('quickSubject').value,
+                    description: document.getElementById('quickDescription').value, deadline: document.getElementById('quickDate').value,
+                    duration: document.getElementById('quickDuration').value, priority: 'medium', completed: false, spaced: false
+                });
+                saveTasks(); document.getElementById('quickAddForm').reset(); window.renderAll();
+            });
+
+            // MÚSICA & CRONÔMETRO
+            let focusTimer; let focusTime = 0; let isRunning = false; let isCountUp = true; let bgAudio = null;
+            const publicSounds = {
+                rain: 'https://cdn.pixabay.com/download/audio/2021/08/09/audio_dc39bde80a.mp3?filename=heavy-rain-nature-sounds-8186.mp3',
+                lofi: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3',
+                jazz: 'https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3?filename=jazzy-abstract-beat-11254.mp3'
+            };
+
+            window.changeAudio = function() {
+                if(bgAudio) { bgAudio.pause(); bgAudio = null; }
+                const type = document.getElementById('focusSound').value;
+                if(type !== 'none' && publicSounds[type]) { bgAudio = new Audio(publicSounds[type]); bgAudio.loop = true; if(isRunning) bgAudio.play(); }
+            };
+
+            window.changeTimerMode = function() {
+                const mode = document.getElementById('focusMode').value;
+                clearInterval(focusTimer); isRunning = false; if(bgAudio) bgAudio.pause();
+                if(mode === 'pomodoro') { isCountUp = false; focusTime = 25 * 60; } else { isCountUp = true; focusTime = 0; }
+                const m = Math.floor(focusTime / 60).toString().padStart(2, '0'); const s = (focusTime % 60).toString().padStart(2, '0');
+                document.getElementById('timerDisplay').textContent = `${m}:${s}`;
+            };
+            window.changeTimerMode(); // set initial
+
+            document.getElementById('btnStartTimer').addEventListener('click', () => {
+                if(isRunning) return; isRunning = true;
+                if(bgAudio) bgAudio.play();
+                focusTimer = setInterval(() => {
+                    if(isCountUp) focusTime++; else focusTime--;
+                    if(!isCountUp && focusTime <= 0) { clearInterval(focusTimer); alert("Tempo Esgotado! Descanse."); isRunning = false; if(bgAudio) bgAudio.pause(); }
+                    const m = Math.floor(focusTime / 60).toString().padStart(2, '0'); const s = (focusTime % 60).toString().padStart(2, '0');
+                    document.getElementById('timerDisplay').textContent = `${m}:${s}`;
+                }, 1000);
+            });
+
+            document.getElementById('btnStopTimer').addEventListener('click', () => { isRunning = false; clearInterval(focusTimer); if(bgAudio) bgAudio.pause(); });
+            document.getElementById('btnResetTimer').addEventListener('click', () => { window.changeTimerMode(); });
+
+            // MODO PROVA
+            let examTimer; let eTime = 45 * 60;
+            window.startExamMode = function() {
+                if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+                document.getElementById('examOverlay').classList.add('active'); eTime = 45 * 60;
+                examTimer = setInterval(() => {
+                    eTime--; const m = Math.floor(eTime / 60).toString().padStart(2, '0'); const s = (eTime % 60).toString().padStart(2, '0');
+                    document.getElementById('examOverlayTimer').textContent = `${m}:${s}`;
+                }, 1000);
+            };
+            window.stopExamMode = function() {
+                if (document.exitFullscreen) document.exitFullscreen();
+                document.getElementById('examOverlay').classList.remove('active'); clearInterval(examTimer);
+            };
+        });
+    </script>
+</body>
+</html>

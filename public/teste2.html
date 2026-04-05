@@ -362,5 +362,681 @@
 
                 <div class="ai-grid">
                     <div>
-                        <h3 style="
-                        
+                        <h3 style="margin-bottom: 15px;">🌐 Seu Grafo de Conhecimento Real</h3>
+                        <div id="knowledgeGraph" class="graph-container"></div>
+                        <small style="color: var(--text-secondary); display: block; margin-top: 10px;">Lê as matérias e tarefas que você cadastra no sistema!</small>
+                    </div>
+
+                    <div class="chat-container">
+                        <div style="padding: 15px; border-bottom: 1px solid var(--border); font-weight: bold;">
+                            🤺 Inquisidor Socrático (Método Feynman)
+                        </div>
+                        <div class="chat-messages" id="chatBox">
+                            <div class="chat-bubble chat-ai">
+                                Olá. Eu sou sua IA de testes. Escreva um conceito que você estudou e eu tentarei achar falhas na sua explicação.
+                            </div>
+                        </div>
+                        <div class="chat-input">
+                            <input type="text" id="chatInput" class="form-input" placeholder="Escreva o que você aprendeu...">
+                            <button class="btn btn-primary" style="width: auto;" onclick="sendChatMessage()">Enviar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ai-tools">
+                    <button class="ai-tool-btn" onclick="openModal('ocrModal')">📸 Scanner OCR</button>
+                    <button class="ai-tool-btn" onclick="openModal('essayModal')">✍️ Corretor de Redação</button>
+                    <button class="ai-tool-btn" onclick="openModal('flashcardModal')">🃏 Gerar Flashcards</button>
+                </div>
+            </div>
+
+            <!-- ABA FOCO & PROVA -->
+            <div class="tab-content" id="focus-tab">
+                <div class="focus-panel">
+                    <h2 style="font-size: 2em; margin-bottom: 10px;">Modo Foco Personalizado</h2>
+                    <p style="color: var(--text-secondary); margin-bottom: 30px;">A música e o cronômetro reais. Foque agora.</p>
+                    
+                    <div class="focus-controls">
+                        <select id="focusMode" class="focus-select" onchange="changeTimerMode()">
+                            <option value="pomodoro">🍅 Pomodoro (Contagem 25min)</option>
+                            <option value="stopwatch">⏱️ Estudo Direto (Cronômetro Lívre)</option>
+                        </select>
+                        <select id="focusSound" class="focus-select" onchange="changeAudio()">
+                            <option value="none">🔇 Sem Som</option>
+                            <option value="rain">🌧️ Som de Chuva</option>
+                            <option value="lofi">🎧 Música Lo-Fi</option>
+                            <option value="jazz">🎷 Jazz Suave</option>
+                        </select>
+                    </div>
+
+                    <div class="timer-display" id="timerDisplay">25:00</div>
+                    
+                    <div style="display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;">
+                        <button class="btn btn-primary" id="btnStartTimer" style="width: 150px;">▶️ Começar</button>
+                        <button class="btn" id="btnStopTimer" style="width: 150px; background: var(--bg-secondary); color: var(--text-primary);">⏸️ Pausar</button>
+                        <button class="btn" id="btnResetTimer" style="width: 150px; background: var(--danger); color: white;">🔄 Zerar</button>
+                    </div>
+
+                    <hr style="border: none; border-top: 1px solid var(--border); margin: 40px 0;">
+
+                    <h3 style="color: var(--danger); margin-bottom: 15px;">⚠️ Treinamento de Alta Pressão</h3>
+                    <button class="btn btn-exam" onclick="startExamMode()">🔒 Iniciar Prova Simulada (Tela Travada)</button>
+                </div>
+            </div>
+
+            <!-- ABA PROVAS -->
+            <div class="tab-content" id="exams-tab">
+                <div class="section-header">
+                    <h2 class="section-title">Minhas Provas</h2>
+                    <button class="btn-add hide-on-parent" id="addExamBtn">➕ Nova Prova</button>
+                </div>
+                <div class="tasks-container" id="examsContainer"></div>
+            </div>
+
+            <!-- ABA PLANEJAMENTO -->
+            <div class="tab-content" id="planning-tab">
+                <div class="section-header">
+                    <h2 class="section-title">Planejamento</h2>
+                    <select class="filter-select" id="planningView">
+                        <option value="weekly">Semanal</option>
+                        <option value="monthly">Mensal</option>
+                    </select>
+                </div>
+                <div class="planning-quick-add hide-on-parent">
+                    <h3 style="margin-bottom: 12px;">➕ Tarefa Rápida</h3>
+                    <form class="planning-quick-form" id="quickAddForm">
+                        <input type="text" id="quickSubject" placeholder="Matéria" required>
+                        <input type="text" id="quickDescription" placeholder="Tarefa" required>
+                        <input type="date" id="quickDate" required>
+                        <button type="submit">Adicionar</button>
+                    </form>
+                </div>
+                <div id="planningContainer"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- OVERLAY PROVA SIMULADA -->
+    <div id="examOverlay">
+        <h2>Modo Prova Simulada Ativo</h2>
+        <p>A tela está travada para evitar distrações. Foco total!</p>
+        <div class="exam-timer" id="examOverlayTimer">45:00</div>
+        <button class="btn" style="background: white; color: black; width: 200px;" onclick="stopExamMode()">Finalizar Prova</button>
+    </div>
+
+    <!-- ========== MODAIS DE CRIAÇÃO (TAREFAS E PROVAS) ========== -->
+    <div class="modal" id="taskModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="taskModalTitle">Nova Tarefa</h2>
+                <button class="btn-close" onclick="closeModal('taskModal')">×</button>
+            </div>
+            <form id="taskForm">
+                <div class="form-group"><label>Matéria *</label><input type="text" id="taskSubject" class="form-input" required></div>
+                <div class="form-group"><label>Tarefa *</label><textarea id="taskDescription" class="form-input" required></textarea></div>
+                <div class="form-group"><label>Data de entrega *</label><input type="date" id="taskDeadline" class="form-input" required></div>
+                <div class="form-group"><label>Data para começar</label><input type="date" id="taskStart" class="form-input"></div>
+                <div class="form-group"><label>Duração (minutos)</label><input type="number" id="taskDuration" class="form-input" min="1"></div>
+                <div class="form-group">
+                    <label>Prioridade *</label>
+                    <select id="taskPriority" class="form-input" required><option value="low">Baixa</option><option value="medium">Média</option><option value="high">Alta</option></select>
+                </div>
+                <div class="form-group" style="display: flex; gap: 10px; align-items: center; background: rgba(139, 92, 246, 0.1); padding: 15px; border-radius: 8px;">
+                    <input type="checkbox" id="taskSpaced" style="width: 18px; height: 18px;">
+                    <label style="margin: 0;">Ativar Revisão Espaçada (1, 3 e 7 dias)</label>
+                </div>
+                <button type="submit" class="btn btn-primary" style="margin-top: 15px;">💾 Salvar Tarefa</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="examModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="examModalTitle">Nova Prova</h2>
+                <button class="btn-close" onclick="closeModal('examModal')">×</button>
+            </div>
+            <form id="examForm">
+                <div class="form-group"><label>Matéria *</label><input type="text" id="examSubject" class="form-input" required></div>
+                <div class="form-group"><label>Data da prova *</label><input type="date" id="examDate" class="form-input" required></div>
+                <div class="form-group"><label>Materiais de Estudo</label><textarea id="examMaterials" class="form-input"></textarea></div>
+                <div class="form-group"><label>Conteúdos da Prova *</label><textarea id="examContent" class="form-input" required></textarea></div>
+                <button type="submit" class="btn btn-primary">💾 Salvar Prova</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========== MODAIS DE DETALHES E TEMPO ========== -->
+    <div class="modal" id="detailModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="detailTitle">Detalhes</h2>
+                <button class="btn-close" onclick="closeModal('detailModal')">×</button>
+            </div>
+            <div id="detailContent"></div>
+        </div>
+    </div>
+
+    <div class="modal" id="timeModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Tempo por Matéria</h2>
+                <button class="btn-close" onclick="closeModal('timeModal')">×</button>
+            </div>
+            <div id="timeBreakdown"></div>
+        </div>
+    </div>
+
+    <!-- ========== MODAIS DAS FERRAMENTAS DE IA ========== -->
+    <div class="modal" id="ocrModal">
+        <div class="modal-content">
+            <div class="modal-header"><h2 class="modal-title">📸 Scanner OCR</h2><button class="btn-close" onclick="closeModal('ocrModal')">×</button></div>
+            <p style="margin-bottom: 15px;">Tire uma foto ou faça upload da página do livro/lousa.</p>
+            <input type="file" accept="image/*" class="form-input" style="margin-bottom: 15px;">
+            <button class="btn btn-primary" onclick="simulateAI('ocrResult', 'Extraindo texto...', 'A Revolução Francesa foi um período de intensa agitação política e social na França...')">Escanear Imagem</button>
+            <div id="ocrResult" style="margin-top: 15px; padding: 15px; background: var(--bg-secondary); border-radius: 8px; display: none;"></div>
+        </div>
+    </div>
+
+    <div class="modal" id="essayModal">
+        <div class="modal-content">
+            <div class="modal-header"><h2 class="modal-title">✍️ Corretor de Redação</h2><button class="btn-close" onclick="closeModal('essayModal')">×</button></div>
+            <textarea class="form-input" rows="6" placeholder="Cole sua redação aqui..." style="margin-bottom: 15px;"></textarea>
+            <button class="btn btn-primary" onclick="simulateAI('essayResult', 'Avaliando critérios do ENEM...', 'Nota Estimada: 840/1000.<br><br><b>Competência 1:</b> Muito bom, mas revise o uso de vírgulas na segunda linha.<br><b>Competência 3:</b> Seus argumentos são válidos, mas falta um repertório sociocultural mais forte no 2º parágrafo.')">Corrigir Texto</button>
+            <div id="essayResult" style="margin-top: 15px; padding: 15px; background: rgba(16, 185, 129, 0.1); border-left: 4px solid var(--success); display: none;"></div>
+        </div>
+    </div>
+
+    <div class="modal" id="flashcardModal">
+        <div class="modal-content">
+            <div class="modal-header"><h2 class="modal-title">🃏 Gerador de Flashcards</h2><button class="btn-close" onclick="closeModal('flashcardModal')">×</button></div>
+            <textarea class="form-input" rows="4" placeholder="Cole suas anotações para gerar cartões de estudo..." style="margin-bottom: 15px;"></textarea>
+            <button class="btn btn-primary" onclick="generateFlashcards()">✨ Gerar Cartões Mágicos</button>
+            <div id="flashcardResult" style="margin-top: 20px; display: none;">
+                <!-- Flashcard 1 -->
+                <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                    <div class="flashcard-inner">
+                        <div class="flashcard-front"><b>Qual o ano da Queda da Bastilha?</b> <br><br>(Clique para virar)</div>
+                        <div class="flashcard-back"><b>1789</b></div>
+                    </div>
+                </div>
+                <!-- Flashcard 2 -->
+                <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                    <div class="flashcard-inner">
+                        <div class="flashcard-front"><b>O que foi o Iluminismo?</b> <br><br>(Clique para virar)</div>
+                        <div class="flashcard-back">Movimento intelectual do séc. XVIII que valorizava a Razão.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========== CORE STATE ==========
+        let currentUser = null;
+        let tasks = [];
+        let exams = [];
+        let editingTaskId = null;
+        let editingExamId = null;
+        let currentMonth = new Date().getMonth();
+        let currentYear = new Date().getFullYear();
+
+        // ========== UTILIDADES ==========
+        function showAlert(msg, type='error') {
+            const container = document.getElementById('alertContainer');
+            container.innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+            setTimeout(() => container.innerHTML = '', 4000);
+        }
+        function openModal(id) { document.getElementById(id).classList.add('active'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+        function formatDate(dateStr) { return new Date(dateStr + 'T12:00:00').toLocaleDateString('pt-BR'); }
+        function getDaysDiff(dateStr) {
+            const today = new Date(); today.setHours(0,0,0,0);
+            const d = new Date(dateStr + 'T12:00:00'); d.setHours(0,0,0,0);
+            return Math.ceil((d - today) / (1000*60*60*24));
+        }
+        function getTaskStatus(t) {
+            if(t.completed) return 'completed';
+            const days = getDaysDiff(t.deadline);
+            if(days < 0) return 'overdue';
+            if(days <= 3) return 'near-deadline';
+            return 'pending';
+        }
+
+        // ========== AUTH & TOGGLES ==========
+        function toggleRegFields() {
+            const isStudent = document.getElementById('regRole').value === 'student';
+            document.getElementById('whatsappFields').style.display = isStudent ? 'block' : 'none';
+            if(isStudent) document.getElementById('regParentPhone').setAttribute('required', 'true');
+            else document.getElementById('regParentPhone').removeAttribute('required');
+        }
+
+        document.getElementById('toggleLink').addEventListener('click', () => {
+            const login = document.getElementById('loginForm');
+            const reg = document.getElementById('registerForm');
+            if(login.style.display === 'none') { login.style.display = 'block'; reg.style.display = 'none'; document.getElementById('toggleLink').textContent = 'Criar conta'; } 
+            else { login.style.display = 'none'; reg.style.display = 'block'; document.getElementById('toggleLink').textContent = 'Fazer login'; }
+        });
+
+        document.getElementById('themeToggle').addEventListener('click', () => {
+            const html = document.documentElement;
+            const newTheme = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('studyhub_theme', newTheme);
+            document.getElementById('themeToggle').textContent = newTheme === 'dark' ? '☀️' : '🌙';
+        });
+        const savedTheme = localStorage.getItem('studyhub_theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        document.getElementById('themeToggle').textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+
+        document.getElementById('logoutBtn').addEventListener('click', () => { localStorage.removeItem('studyhub_user'); location.reload(); });
+
+        document.getElementById('loginForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const role = email.includes('pai') ? 'parent' : 'student'; // truque de teste
+            currentUser = { id: '1', role: role, name: role === 'parent' ? 'Pai/Mãe' : 'Aluno VIP' };
+            localStorage.setItem('studyhub_user', JSON.stringify(currentUser));
+            showApp();
+        });
+
+        document.getElementById('registerForm').addEventListener('submit', (e) => {
+            e.preventDefault(); alert("Conta salva no navegador! Faça o login agora.");
+        });
+
+        function showApp() {
+            document.getElementById('authPage').style.display = 'none';
+            document.getElementById('appContainer').classList.add('active');
+            document.getElementById('userName').textContent = currentUser.name;
+            
+            document.body.className = ''; 
+            if(currentUser.role === 'parent') {
+                document.body.classList.add('is-parent');
+                alert("Painel Responsável Ativo. Edições bloqueadas.");
+            } else {
+                document.body.classList.add('is-student');
+                const msg = localStorage.getItem('parentMsg');
+                if(msg) document.getElementById('inboxMessage').innerHTML = `<strong>${msg}</strong>`;
+            }
+
+            // Fake Data Load
+            tasks = JSON.parse(localStorage.getItem('studyhub_tasks')) || [];
+            exams = JSON.parse(localStorage.getItem('studyhub_exams')) || [];
+            renderAll();
+        }
+
+        function sendParentMessage() {
+            const msg = prompt("Mandar aviso para o filho:");
+            if(msg) { localStorage.setItem('parentMsg', msg); alert("Mensagem salva!"); }
+        }
+
+        if(localStorage.getItem('studyhub_user')) { currentUser = JSON.parse(localStorage.getItem('studyhub_user')); showApp(); }
+
+        // ========== CORE RENDERING ==========
+        function renderAll() {
+            renderStats(); renderTasks(); renderExams(); renderPlanning(); updateKnowledgeGraph();
+        }
+
+        function renderStats() {
+            const tot = tasks.length;
+            const pend = tasks.filter(t => !t.completed && getTaskStatus(t) !== 'overdue').length;
+            const over = tasks.filter(t => !t.completed && getTaskStatus(t) === 'overdue').length;
+            const comp = tasks.filter(t => t.completed).length;
+            const time = tasks.filter(t => !t.completed).reduce((s, t) => s + (parseInt(t.duration) || 0), 0);
+            
+            document.getElementById('statTotal').textContent = tot;
+            document.getElementById('statPending').textContent = pend;
+            document.getElementById('statOverdue').textContent = over;
+            document.getElementById('statCompleted').textContent = comp;
+            document.getElementById('statTime').textContent = `${Math.floor(time/60)}h ${time%60}m`;
+            
+            if(tot > 0) {
+                document.getElementById('statPendingPercent').textContent = `${Math.round(pend/tot*100)}%`;
+                document.getElementById('statOverduePercent').textContent = `${Math.round(over/tot*100)}%`;
+                document.getElementById('statCompletedPercent').textContent = `${Math.round(comp/tot*100)}%`;
+            }
+        }
+
+        // ========== TAREFAS ==========
+        document.getElementById('addTaskBtn').addEventListener('click', () => {
+            editingTaskId = null; document.getElementById('taskForm').reset(); openModal('taskModal');
+        });
+
+        document.getElementById('taskForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const t = {
+                id: editingTaskId || Date.now().toString(),
+                subject: document.getElementById('taskSubject').value,
+                description: document.getElementById('taskDescription').value,
+                deadline: document.getElementById('taskDeadline').value,
+                start: document.getElementById('taskStart').value,
+                duration: document.getElementById('taskDuration').value,
+                priority: document.getElementById('taskPriority').value,
+                spaced: document.getElementById('taskSpaced').checked,
+                completed: editingTaskId ? tasks.find(x => x.id === editingTaskId).completed : false
+            };
+            if(editingTaskId) { const i = tasks.findIndex(x => x.id === editingTaskId); tasks[i] = t; } 
+            else tasks.push(t);
+            
+            localStorage.setItem('studyhub_tasks', JSON.stringify(tasks));
+            closeModal('taskModal'); renderAll();
+            if(t.spaced && !editingTaskId) alert("Revisões de 1, 3 e 7 dias agendadas no sistema!");
+        });
+
+        function renderTasks() {
+            const container = document.getElementById('tasksContainer');
+            // Apply Filters
+            let arr = [...tasks];
+            const sub = document.getElementById('filterSubject').value;
+            const pri = document.getElementById('filterPriority').value;
+            const stat = document.getElementById('filterStatus').value;
+            const sort = document.getElementById('sortBy').value;
+            
+            if(sub) arr = arr.filter(t => t.subject === sub);
+            if(pri) arr = arr.filter(t => t.priority === pri);
+            if(stat === 'completed') arr = arr.filter(t => t.completed);
+            if(stat === 'pending') arr = arr.filter(t => !t.completed && getTaskStatus(t) !== 'overdue');
+            if(stat === 'overdue') arr = arr.filter(t => !t.completed && getTaskStatus(t) === 'overdue');
+
+            arr.sort((a, b) => {
+                if(sort === 'deadline') return new Date(a.deadline) - new Date(b.deadline);
+                if(sort === 'priority') { const p = {high:0,medium:1,low:2}; return p[a.priority] - p[b.priority]; }
+                return a.subject.localeCompare(b.subject);
+            });
+
+            if(arr.length === 0) { container.innerHTML = '<div class="empty-state">Nenhuma tarefa aqui!</div>'; return; }
+
+            container.innerHTML = arr.map(t => {
+                const s = getTaskStatus(t);
+                const labels = { completed: 'Concluída', overdue: 'Atrasada', 'near-deadline': 'Próxima', pending: 'Pendente' };
+                const c = { completed: 'status-completed', overdue: 'status-overdue', 'near-deadline': 'status-pending', pending: 'status-pending' };
+                return `
+                    <div class="task-card ${s}" onclick="showTaskDetail('${t.id}')">
+                        <div class="task-header">
+                            <div class="task-title">📚 ${t.subject} ${t.spaced ? '<span class="spaced-badge">🔄 Revisão Automática</span>' : ''}</div>
+                            <div class="task-priority priority-${t.priority}">${{high:'Alta',medium:'Média',low:'Baixa'}[t.priority]}</div>
+                        </div>
+                        <div class="task-meta">
+                            <span>📅 ${formatDate(t.deadline)}</span>
+                            ${t.duration ? `<span>⏱️ ${t.duration}m</span>` : ''}
+                        </div>
+                        <div class="task-status ${c[s]}">${labels[s]}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function showTaskDetail(id) {
+            const t = tasks.find(x => x.id === id);
+            document.getElementById('detailTitle').textContent = t.subject;
+            document.getElementById('detailContent').innerHTML = `
+                <div class="detail-section"><div class="detail-label">Tarefa</div><div class="detail-value">${t.description}</div></div>
+                <div class="detail-section"><div class="detail-label">Entrega</div><div class="detail-value">${formatDate(t.deadline)}</div></div>
+                <div class="btn-group hide-on-parent">
+                    <button class="btn-secondary" onclick="editTask('${t.id}')">✏️ Editar</button>
+                    <button class="btn-secondary" onclick="toggleTask('${t.id}')">${t.completed ? 'Reabrir' : '✅ Concluir'}</button>
+                    <button class="btn-danger" onclick="deleteTask('${t.id}')">🗑️ Excluir</button>
+                </div>
+            `;
+            openModal('detailModal');
+        }
+
+        function toggleTask(id) { const t = tasks.find(x => x.id === id); t.completed = !t.completed; localStorage.setItem('studyhub_tasks', JSON.stringify(tasks)); closeModal('detailModal'); renderAll(); }
+        function deleteTask(id) { tasks = tasks.filter(x => x.id !== id); localStorage.setItem('studyhub_tasks', JSON.stringify(tasks)); closeModal('detailModal'); renderAll(); }
+        function editTask(id) {
+            const t = tasks.find(x => x.id === id); editingTaskId = id;
+            document.getElementById('taskSubject').value = t.subject;
+            document.getElementById('taskDescription').value = t.description;
+            document.getElementById('taskDeadline').value = t.deadline;
+            document.getElementById('taskStart').value = t.start || '';
+            document.getElementById('taskDuration').value = t.duration || '';
+            document.getElementById('taskPriority').value = t.priority;
+            document.getElementById('taskSpaced').checked = t.spaced || false;
+            closeModal('detailModal'); openModal('taskModal');
+        }
+
+        // ========== PROVAS ==========
+        document.getElementById('addExamBtn').addEventListener('click', () => { editingExamId = null; document.getElementById('examForm').reset(); openModal('examModal'); });
+        document.getElementById('examForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const ex = {
+                id: editingExamId || Date.now().toString(),
+                subject: document.getElementById('examSubject').value,
+                date: document.getElementById('examDate').value,
+                materials: document.getElementById('examMaterials').value,
+                content: document.getElementById('examContent').value
+            };
+            if(editingExamId) { const i = exams.findIndex(x => x.id === editingExamId); exams[i] = ex; } else exams.push(ex);
+            localStorage.setItem('studyhub_exams', JSON.stringify(exams));
+            closeModal('examModal'); renderAll();
+        });
+
+        function renderExams() {
+            const container = document.getElementById('examsContainer');
+            if(exams.length === 0) { container.innerHTML = '<div class="empty-state">Nenhuma prova!</div>'; return; }
+            container.innerHTML = [...exams].sort((a,b)=>new Date(a.date)-new Date(b.date)).map(ex => `
+                <div class="task-card" onclick="showExamDetail('${ex.id}')">
+                    <div class="task-header"><div class="task-title">📝 ${ex.subject}</div></div>
+                    <div class="task-meta">📅 ${formatDate(ex.date)}</div>
+                </div>
+            `).join('');
+        }
+        
+        function showExamDetail(id) {
+            const ex = exams.find(x => x.id === id);
+            document.getElementById('detailTitle').textContent = `Prova de ${ex.subject}`;
+            document.getElementById('detailContent').innerHTML = `
+                <div class="detail-section"><div class="detail-label">Data</div><div class="detail-value">${formatDate(ex.date)}</div></div>
+                <div class="detail-section"><div class="detail-label">Conteúdo</div><div class="detail-value">${ex.content}</div></div>
+                <div class="btn-group hide-on-parent">
+                    <button class="btn-secondary" onclick="editExam('${ex.id}')">✏️ Editar</button>
+                    <button class="btn-danger" onclick="deleteExam('${ex.id}')">🗑️ Excluir</button>
+                </div>
+            `;
+            openModal('detailModal');
+        }
+        function deleteExam(id) { exams = exams.filter(x => x.id !== id); localStorage.setItem('studyhub_exams', JSON.stringify(exams)); closeModal('detailModal'); renderAll(); }
+        function editExam(id) {
+            const ex = exams.find(x => x.id === id); editingExamId = id;
+            document.getElementById('examSubject').value = ex.subject;
+            document.getElementById('examDate').value = ex.date;
+            document.getElementById('examMaterials').value = ex.materials;
+            document.getElementById('examContent').value = ex.content;
+            closeModal('detailModal'); openModal('examModal');
+        }
+
+        // ========== PLANEJAMENTO ==========
+        document.getElementById('planningView').addEventListener('change', renderPlanning);
+        document.getElementById('quickAddForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            tasks.push({
+                id: Date.now().toString(), subject: document.getElementById('quickSubject').value,
+                description: document.getElementById('quickDescription').value, deadline: document.getElementById('quickDate').value,
+                duration: document.getElementById('quickDuration').value, priority: 'medium', completed: false
+            });
+            localStorage.setItem('studyhub_tasks', JSON.stringify(tasks));
+            document.getElementById('quickAddForm').reset(); renderAll();
+        });
+
+        function renderPlanning() {
+            const view = document.getElementById('planningView').value;
+            const container = document.getElementById('planningContainer');
+            if (view === 'weekly') {
+                const weekDays = Array.from({length:7}, (_, i) => { const d = new Date(); d.setDate(d.getDate()+i); return d; });
+                container.innerHTML = `<div class="week-view">${weekDays.map(date => {
+                    const dStr = date.toISOString().split('T')[0];
+                    const tks = tasks.filter(t => !t.completed && (t.start === dStr || t.deadline === dStr));
+                    return `<div class="day-column">
+                        <div class="day-header">${date.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'})}</div>
+                        ${tks.map(t => `<div class="day-task-item" onclick="showTaskDetail('${t.id}')"><strong>${t.subject}</strong><br><small>${t.duration||0}m</small></div>`).join('')}
+                    </div>`;
+                }).join('')}</div>`;
+            } else {
+                const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+                let html = `<div class="calendar-container"><div class="calendar-header">
+                    <div class="calendar-month-year">${currentMonth+1}/${currentYear}</div>
+                    <div class="calendar-nav"><button onclick="currentMonth--;renderPlanning();">←</button><button onclick="currentMonth++;renderPlanning();">→</button></div>
+                    </div><div class="calendar-days">`;
+                for(let i=1; i<=daysInMonth; i++) {
+                    const dStr = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+                    const hasT = tasks.some(t => !t.completed && t.deadline === dStr);
+                    html += `<div class="calendar-day ${hasT?'has-tasks':''}">${i} ${hasT?'<div class="calendar-dot"></div>':''}</div>`;
+                }
+                container.innerHTML = html + `</div></div>`;
+            }
+        }
+
+        // ========== GRAFO DE CONHECIMENTO 3D ==========
+        let network;
+        function updateKnowledgeGraph() {
+            const container = document.getElementById('knowledgeGraph');
+            if(!container) return;
+            
+            let nodes = [{ id: 'MEU_CEREBRO', label: 'Meu Cérebro', color: '#ef4444', font: {size: 20} }];
+            let edges = [];
+            
+            // Pega as matérias reais que o usuário cadastrou nas tarefas/provas
+            let subjects = [...new Set(tasks.map(t => t.subject).concat(exams.map(e => e.subject)))];
+            
+            if(subjects.length === 0) {
+                // Mockup se não tiver nada
+                subjects = ['Matemática', 'Física'];
+            }
+
+            subjects.forEach((sub, i) => {
+                const subId = 'SUB_' + i;
+                nodes.push({ id: subId, label: sub, color: '#6366f1' });
+                edges.push({ from: 'MEU_CEREBRO', to: subId });
+                
+                // Conecta tarefas concluídas às matérias
+                let subTasks = tasks.filter(t => t.subject === sub && t.completed);
+                subTasks.forEach(t => {
+                    nodes.push({ id: t.id, label: t.description.substring(0,10)+'...', shape: 'box', color: '#10b981' });
+                    edges.push({ from: subId, to: t.id });
+                });
+            });
+
+            const data = { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) };
+            const options = { physics: { stabilization: false, barnesHut: { springLength: 100 } } };
+            
+            if(network) { network.destroy(); }
+            network = new vis.Network(container, data, options);
+        }
+
+        // ========== INQUISIDOR SOCRÁTICO ==========
+        const socraticPrompts = [
+            "Muito bom. Mas se isso é verdade, como você explicaria a exceção à essa regra para uma criança?",
+            "Você usou jargões. Tente explicar a mesma coisa sem usar NENHUM termo técnico. O que significa na prática?",
+            "Entendi a teoria. Mas qual é a falha lógica nesse raciocínio se aplicarmos isso no mundo real hoje?",
+            "Interessante. Mas e se o oposto disso acontecesse? Qual seria o resultado?"
+        ];
+        function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const box = document.getElementById('chatBox');
+            if(!input.value) return;
+            
+            box.innerHTML += `<div class="chat-bubble chat-user">${input.value}</div>`;
+            const text = input.value; input.value = ''; box.scrollTop = box.scrollHeight;
+            
+            setTimeout(() => {
+                let reply = socraticPrompts[Math.floor(Math.random() * socraticPrompts.length)];
+                if(text.length < 15) reply = "Sua resposta foi muito curta. Elaborar mais é o primeiro passo para o domínio. Tente de novo, mais profundo.";
+                box.innerHTML += `<div class="chat-bubble chat-ai">${reply}</div>`;
+                box.scrollTop = box.scrollHeight;
+            }, 1000);
+        }
+
+        // ========== MÚSICA & CRONÔMETRO (FOCO) ==========
+        let focusTimer;
+        let focusTime = 25 * 60; // Default Pomodoro
+        let isRunning = false;
+        let isCountUp = false;
+        let bgAudio = null;
+
+        const publicSounds = {
+            rain: 'https://cdn.pixabay.com/download/audio/2021/08/09/audio_dc39bde80a.mp3?filename=heavy-rain-nature-sounds-8186.mp3',
+            lofi: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3',
+            jazz: 'https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3?filename=jazzy-abstract-beat-11254.mp3'
+        };
+
+        function changeAudio() {
+            if(bgAudio) { bgAudio.pause(); bgAudio = null; }
+            const type = document.getElementById('focusSound').value;
+            if(type !== 'none' && publicSounds[type]) {
+                bgAudio = new Audio(publicSounds[type]);
+                bgAudio.loop = true;
+                if(isRunning) bgAudio.play();
+            }
+        }
+
+        function changeTimerMode() {
+            const mode = document.getElementById('focusMode').value;
+            if(mode === 'pomodoro') { isCountUp = false; focusTime = 25 * 60; } 
+            else { isCountUp = true; focusTime = 0; }
+            updateTimerDisplay();
+        }
+
+        function updateTimerDisplay() {
+            const m = Math.floor(focusTime / 60).toString().padStart(2, '0');
+            const s = (focusTime % 60).toString().padStart(2, '0');
+            document.getElementById('timerDisplay').textContent = `${m}:${s}`;
+        }
+
+        document.getElementById('btnStartTimer').addEventListener('click', () => {
+            if(isRunning) return; isRunning = true;
+            if(bgAudio) bgAudio.play();
+            focusTimer = setInterval(() => {
+                if(isCountUp) focusTime++; else focusTime--;
+                if(!isCountUp && focusTime <= 0) { clearInterval(focusTimer); alert("Tempo Esgotado! Descanse."); isRunning = false; if(bgAudio)bgAudio.pause(); }
+                updateTimerDisplay();
+            }, 1000);
+        });
+
+        document.getElementById('btnStopTimer').addEventListener('click', () => {
+            isRunning = false; clearInterval(focusTimer); if(bgAudio) bgAudio.pause();
+        });
+
+        document.getElementById('btnResetTimer').addEventListener('click', () => {
+            isRunning = false; clearInterval(focusTimer); if(bgAudio) bgAudio.pause();
+            changeTimerMode(); // Resets properly
+        });
+
+        // ========== EXAM MODE OVERLAY ==========
+        let examTimer; let eTime = 45 * 60;
+        function startExamMode() {
+            if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+            document.getElementById('examOverlay').classList.add('active');
+            eTime = 45 * 60;
+            examTimer = setInterval(() => {
+                eTime--;
+                const m = Math.floor(eTime / 60).toString().padStart(2, '0');
+                const s = (eTime % 60).toString().padStart(2, '0');
+                document.getElementById('examOverlayTimer').textContent = `${m}:${s}`;
+            }, 1000);
+        }
+        function stopExamMode() {
+            if (document.exitFullscreen) document.exitFullscreen();
+            document.getElementById('examOverlay').classList.remove('active');
+            clearInterval(examTimer);
+        }
+
+        // ========== AI MODALS SIMULATION ==========
+        function simulateAI(divId, loadMsg, resultHtml) {
+            const div = document.getElementById(divId);
+            div.style.display = 'block';
+            div.innerHTML = `⏳ <i>${loadMsg}</i>`;
+            setTimeout(() => { div.innerHTML = resultHtml; }, 2000);
+        }
+        function generateFlashcards() {
+            const div = document.getElementById('flashcardResult');
+            div.style.display = 'block'; div.innerHTML = "⏳ <i>Analisando texto e criando flashcards...</i>";
+            setTimeout(() => {
+                div.innerHTML = `
+                <div class="flashcard" onclick="this.classList.toggle('flipped')"><div class="flashcard-inner"><div class="flashcard-front"><b>Conceito Chave 1 extraído</b><br><br>(Clique para virar)</div><div class="flashcard-back"><b>Resposta Resumida da IA</b></div></div></div>
+                <div class="flashcard" onclick="this.classList.toggle('flipped')"><div class="flashcard-inner"><div class="flashcard-front"><b>Data/Fórmula Importante</b><br><br>(Clique para virar)</div><div class="flashcard-back"><b>E=mc²</b></div></div></div>
+                `;
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
